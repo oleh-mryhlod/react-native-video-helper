@@ -13,15 +13,13 @@ import android.util.Log;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressLint("NewApi")
 public class MediaController {
     static final int COMPRESS_QUALITY_HIGH = 1;
     static final int COMPRESS_QUALITY_MEDIUM = 2;
     static final int COMPRESS_QUALITY_LOW = 3;
-
-    public static File cachedFile;
-    public String path;
 
     public final static String MIME_TYPE = "video/avc";
     private final static int PROCESSOR_TYPE_OTHER = 0;
@@ -30,13 +28,12 @@ public class MediaController {
     private final static int PROCESSOR_TYPE_MTK = 3;
     private final static int PROCESSOR_TYPE_SEC = 4;
     private final static int PROCESSOR_TYPE_TI = 5;
+    public static File cachedFile;
+    
     private static volatile MediaController Instance = null;
+    public String path;
     private boolean videoConvertFirstWrite = true;
     private int DEFAULT_ORIENTATION = 0;
-
-    interface CompressProgressListener {
-        void onProgress(float percent);
-    }
 
     public void SetDefaultOrientation (int DEFAULT_ORIENTATION) {
         this.DEFAULT_ORIENTATION = DEFAULT_ORIENTATION;
@@ -86,45 +83,6 @@ public class MediaController {
 
     public native static int convertVideoFrame(ByteBuffer src, ByteBuffer dest, int destFormat, int width, int height, int padding, int swap);
 
-    private void didWriteData(final boolean last, final boolean error) {
-        final boolean firstWrite = videoConvertFirstWrite;
-        if (firstWrite) {
-            videoConvertFirstWrite = false;
-        }
-    }
-
-    public static class VideoConvertRunnable implements Runnable {
-
-        private String videoPath;
-        private String destPath;
-
-        private VideoConvertRunnable(String videoPath, String destPath) {
-            this.videoPath = videoPath;
-            this.destPath = destPath;
-        }
-
-        public static void runConversion(final String videoPath, final String destPath) {
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        VideoConvertRunnable wrapper = new VideoConvertRunnable(videoPath, destPath);
-                        Thread th = new Thread(wrapper, "VideoConvertRunnable");
-                        th.start();
-                        th.join();
-                    } catch (Exception e) {
-                        Log.e("tmessages", e.getMessage());
-                    }
-                }
-            }).start();
-        }
-
-        @Override
-        public void run() {
-            MediaController.getInstance().convertVideo(videoPath, destPath, 0, -1, -1,null);
-        }
-    }
-
     public static MediaCodecInfo selectCodec(String mimeType) {
         int numCodecs = MediaCodecList.getCodecCount();
         MediaCodecInfo lastCodecInfo = null;
@@ -148,18 +106,11 @@ public class MediaController {
         return lastCodecInfo;
     }
 
-    /**
-     * Background conversion for queueing tasks
-     * @param path source file to compress
-     * @param dest destination directory to put result
-     */
-
-    public void scheduleVideoConvert(String path, String dest) {
-        startVideoConvertFromQueue(path, dest);
-    }
-
-    private void startVideoConvertFromQueue(String path, String dest) {
-        VideoConvertRunnable.runConversion(path, dest);
+    private void didWriteData(final boolean last, final boolean error) {
+        final boolean firstWrite = videoConvertFirstWrite;
+        if (firstWrite) {
+            videoConvertFirstWrite = false;
+        }
     }
 
     @TargetApi(16)
@@ -245,8 +196,8 @@ public class MediaController {
      * @return
      */
     @TargetApi(16)
-    public boolean convertVideo(final String sourcePath, String destinationPath, int quality, long startT, long endT, CompressProgressListener listener) {
-        this.path=sourcePath;
+    public boolean convertVideo(final String sourcePath, String destinationPath, int quality, long startT, long endT, CompressProgressListener listener, final AtomicBoolean isCancelled) {
+        this.path = sourcePath;
 
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         retriever.setDataSource(path);
@@ -488,6 +439,9 @@ public class MediaController {
                             }
 
                             while (!outputDone) {
+                                if (isCancelled.get()) {
+                                    throw new RuntimeException("Compression Cancelled. Aborting");
+                                }
                                 if (!inputDone) {
                                     boolean eof = false;
                                     int index = extractor.getSampleTrackIndex();
@@ -770,5 +724,9 @@ public class MediaController {
     //    cacheFile.delete();
        // inputFile.delete();
         return true;
+    }
+
+    interface CompressProgressListener {
+        void onProgress(float percent);
     }
 }
