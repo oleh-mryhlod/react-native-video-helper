@@ -9,11 +9,12 @@ buildscript {
     if (project == rootProject) {
         repositories {
             jcenter()
+            google()
         }
 
         dependencies {
             //noinspection GradleDependency
-            classpath 'com.android.tools.build:gradle:2.3.2'
+            classpath 'com.android.tools.build:gradle:3.3.1'
         }
     }
 }
@@ -37,6 +38,7 @@ android {
 
 repositories {
     mavenCentral()
+    google()
 }
 
 dependencies {
