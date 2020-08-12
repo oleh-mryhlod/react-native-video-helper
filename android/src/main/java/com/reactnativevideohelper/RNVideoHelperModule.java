@@ -3,8 +3,7 @@ package com.reactnativevideohelper;
 
 import android.net.Uri;
 import android.util.Log;
-import android.os.AsyncTask.Status;
-import android.support.annotation.NonNull;
+
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
@@ -12,8 +11,12 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-import com.reactnativevideohelper.video.VideoCompressionTask.VideoCompressionListener;
-import com.reactnativevideohelper.video.VideoCompressionTask;
+import com.abedelazizshe.lightcompressorlibrary.VideoCompressor;
+import com.abedelazizshe.lightcompressorlibrary.VideoQuality;
+import com.abedelazizshe.lightcompressorlibrary.CompressionListener;
+
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.util.UUID;
 
@@ -21,7 +24,6 @@ public class RNVideoHelperModule extends ReactContextBaseJavaModule {
 
   private static final String TAG = "RNVideoHelper";
   private final ReactApplicationContext reactContext;
-  private VideoCompressionTask videoCompressTask = null;
 
   public RNVideoHelperModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -41,14 +43,7 @@ public class RNVideoHelperModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void cancelCompress() {
-    cancelExistingTaskIfExists();
-  }
-
-  private void cancelExistingTaskIfExists() {
-    /* Cancel any existing task */
-    if (videoCompressTask != null && videoCompressTask.getStatus() == Status.RUNNING) {
-      videoCompressTask.cancel();
-    }
+    VideoCompressor.INSTANCE.cancel();
   }
 
   @ReactMethod
@@ -59,29 +54,36 @@ public class RNVideoHelperModule extends ReactContextBaseJavaModule {
     final String outputUri = String.format("%s/%s.mp4", outputDir.getPath(), UUID.randomUUID().toString());
 
     final String quality = options.hasKey("quality") ? options.getString("quality") : "";
-    final long startTime = options.hasKey("startTime") ? (long)options.getDouble("startTime") : -1;
-    final long endTime = options.hasKey("endTime") ? (long)options.getDouble("endTime") : -1;
-    final int defaultOrientation = options.hasKey("defaultOrientation") ? (int)options.getInt("defaultOrientation") : 0;
+    final VideoQuality videoQuality;
+    switch (quality) {
+      case "high":
+        videoQuality = VideoQuality.HIGH;
+        break;
+      case "medium":
+        videoQuality = VideoQuality.MEDIUM;
+        break;
+      default:
+        videoQuality = VideoQuality.LOW;
+    };
+
+    final boolean isMinBitRateEnabled = options.hasKey("isMinBitRateEnabled") && options.getBoolean("isMinBitRateEnabled");
+    final boolean keepOriginalResolution = options.hasKey("isMinBitRateEnabled") && options.getBoolean("isMinBitRateEnabled");
 
     try {
-      videoCompressTask = new VideoCompressionTask(
-          inputUri,
-          outputUri,
-          quality,
-          startTime,
-          endTime,
-          createListener(pm, outputUri),
-          defaultOrientation
-      );
-      videoCompressTask.execute();
+      VideoCompressor.INSTANCE.start(
+              inputUri,
+              outputUri,
+              createListener(pm, outputUri),
+              videoQuality,
+              isMinBitRateEnabled,
+              keepOriginalResolution);
     } catch (Throwable e) {
       Log.e(TAG, e.getMessage(), e);
     }
   }
 
-  @NonNull
-  private VideoCompressionListener createListener(final Promise pm, final String outputUri) {
-    return new VideoCompressionListener() {
+  private CompressionListener createListener(final Promise pm, final String outputUri) {
+    return new CompressionListener() {
       @Override
       public void onStart() {
         //Start Compress
@@ -95,14 +97,20 @@ public class RNVideoHelperModule extends ReactContextBaseJavaModule {
       }
 
       @Override
-      public void onFail() {
+      public void onFailure(@NotNull String failureMessage) {
         //Failed
-        pm.reject("ERROR", "Failed to compress video");
+        pm.reject("ERROR", failureMessage);
       }
 
       @Override
       public void onProgress(float percent) {
         sendProgress(reactContext, percent / 100);
+      }
+
+      @Override
+      public void onCancelled() {
+        // Compression canceled
+        Log.d("INFO", "Compression canceled");
       }
     };
   }

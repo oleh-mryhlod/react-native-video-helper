@@ -39,11 +39,11 @@ android {
 repositories {
     mavenCentral()
     google()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    implementation 'com.googlecode.mp4parser:isoparser:1.0.6'
-    implementation 'org.aspectj:aspectjrt:1.7.3'
+    implementation 'com.github.AbedElazizShe:LightCompressor:0.6.2'
     implementation 'com.facebook.react:react-native:+'
 }
   
