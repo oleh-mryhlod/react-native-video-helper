@@ -15,8 +15,6 @@ import com.abedelazizshe.lightcompressorlibrary.VideoCompressor;
 import com.abedelazizshe.lightcompressorlibrary.VideoQuality;
 import com.abedelazizshe.lightcompressorlibrary.CompressionListener;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.File;
 import java.util.UUID;
 
@@ -97,7 +95,7 @@ public class RNVideoHelperModule extends ReactContextBaseJavaModule {
       }
 
       @Override
-      public void onFailure(@NotNull String failureMessage) {
+      public void onFailure(String failureMessage) {
         //Failed
         pm.reject("ERROR", failureMessage);
       }
