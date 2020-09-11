@@ -1,4 +1,4 @@
-import { NativeEventEmitter, NativeModules, } from 'react-native';
+import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
 const { RNVideoHelper } = NativeModules;
 
 const videoHelperEmitter = new NativeEventEmitter(RNVideoHelper);
@@ -36,5 +36,13 @@ export default {
         resolve(output);
       }).catch(err => reject(err));
     });
+  },
+
+  cancelCompress: () => {
+    videoHelperEmitter.removeAllListeners('progress');
+
+    if (Platform.OS === 'ios') return;
+    
+    RNVideoHelper.cancelCompress();
   },
 }

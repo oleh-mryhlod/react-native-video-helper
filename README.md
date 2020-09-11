@@ -29,7 +29,7 @@
 #### Android
 
 1. Open up `android/app/src/main/java/[...]/MainActivity.java`
-  - Add `import com.reactlibrary.RNVideoHelperPackage;` to the imports at the top of the file
+  - Add `import com.reactnativevideohelper.RNVideoHelperPackage;` to the imports at the top of the file
   - Add `new RNVideoHelperPackage()` to the list returned by the `getPackages()` method
 2. Append the following lines to `android/settings.gradle`:
   	```
@@ -47,6 +47,7 @@ import RNVideoHelper from 'react-native-video-helper';
 
 const sourceUri = 'assets-library://asset/asset.mov?id=0F3F0000-9518-4F32-B389-7117F4C2B069&ext=mov';
 
+// compress
 RNVideoHelper.compress(sourceUri, {
 	startTime: 10, // optional, in seconds, defaults to 0
 	endTime: 100, //  optional, in seconds, defaults to video duration
@@ -57,5 +58,10 @@ RNVideoHelper.compress(sourceUri, {
 }).then(compressedUri => {
 	console.warn('compressedUri', compressedUri); // String with path to temporary compressed video
 });
+
+// cancel compress
+// Android: cancel video compression, removes progress listener
+// iOS: removes progress listener
+RNVideoHelper.cancelCompress();
 ```
   
