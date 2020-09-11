@@ -129,7 +129,7 @@ RCT_EXPORT_METHOD(compress:(NSString *)source options:(NSDictionary *)options re
     encoder.outputFileType = AVFileTypeMPEG4;
     encoder.outputURL = [NSURL fileURLWithPath:
                          [NSTemporaryDirectory() stringByAppendingPathComponent:
-                          [NSString stringWithFormat:@"compressed_%@.mov", [[NSProcessInfo processInfo] globallyUniqueString]
+                          [NSString stringWithFormat:@"compressed_%@.mp4", [[NSProcessInfo processInfo] globallyUniqueString]
                           ]]];
     encoder.shouldOptimizeForNetworkUse = true;
     
