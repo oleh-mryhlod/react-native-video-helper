@@ -109,6 +109,12 @@ public class RNVideoHelperModule extends ReactContextBaseJavaModule {
       public void onCancelled() {
         // Compression canceled
         Log.d("INFO", "Compression canceled");
+
+        // remove file
+        File outputFile = new File(outputUri);
+        if (outputFile.exists()) {
+          outputFile.delete();
+        }
       }
     };
   }
