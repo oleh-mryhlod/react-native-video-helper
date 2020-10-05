@@ -32,14 +32,21 @@ export default {
       const subscription = videoHelperEmitter.addListener('progress', p => progress(p));
   
       RNVideoHelper.compress(source, options).then(output => {
-        subscription.remove();
+        const listeners = videoHelperEmitter.listeners('progress');
+        if (listeners.length) {
+          subscription.remove();
+        }
+
         resolve(output);
       }).catch(err => reject(err));
     });
   },
 
   cancelCompress: () => {
-    videoHelperEmitter.removeAllListeners('progress');
+    const listeners = videoHelperEmitter.listeners('progress');
+    if (listeners.length) {
+      videoHelperEmitter.removeAllListeners('progress');
+    }
 
     if (Platform.OS === 'ios') return;
     
